@@ -8,6 +8,10 @@ const DOCUSTORE_CONTRACT_ADDRESS = process.env.DOCUSTORE_CONTRACT_ADDRESS!;
 const ADMIN_MNEMONIC = process.env.ADMIN_MNEMONIC!;
 const XION_RPC_ENDPOINT = "https://rpc.xion-testnet-2.burnt.com";
 
+// Provider IDs for easy reference
+const TWITTER_PROVIDER_ID = 'e6fe962d-8b4e-4ce5-abcc-3d21c88bd64a';
+const GITHUB_PROVIDER_ID = '8ce3c937-b5d7-4034-8b65-92633011904a';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const proof = req.body;
@@ -21,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // 1. READ existing persona data from the blockchain
         const readOnlyClient = await SigningCosmWasmClient.connect(XION_RPC_ENDPOINT);
-        let existingPersona = {};
+        let existingPersona: any = {};
         try {
             const queryResponse = await readOnlyClient.queryContractSmart(DOCUSTORE_CONTRACT_ADDRESS, {
                 read: { collection: "personas", document_id: userAddress },
@@ -29,21 +33,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (queryResponse.data) {
                 existingPersona = JSON.parse(queryResponse.data);
             }
-        } catch (e) { /* It's okay if it fails; means no document exists yet. */ }
+        } catch (e) { /* Document doesn't exist yet, which is fine */ }
 
         let newData = {};
 
-        // 2. PROCESS proof data based on the provider (SCALABLE LOGIC)
+        // 2. PROCESS proof data based on the specific provider
         switch (proof.providerId) {
-            case '8ce3c937-b5d7-4034-8b65-92633011904a': // GitHub
-                newData = { github: { contributions: parseInt(proof.claimData.context.extractedParameters.contributionsInLastYear) }};
+            case TWITTER_PROVIDER_ID:
+                const params = proof.claimData.context.extractedParameters;
+                newData = { 
+                    twitter: {
+                        screenName: params.screen_name,
+                        followers: parseInt(params.followers_count, 10),
+                        createdAt: params.created_at,
+                        verifiedAt: new Date().toISOString(),
+                    }
+                };
                 break;
-            case 'e6fe962d-8b4e-4ce5-abcc-3d21c88bd64a': // Twitter / X
-                newData = { twitter: { followers: parseInt(proof.claimData.context.extractedParameters.followersCount) }};
+            
+            // Add other cases here as you scale
+            case GITHUB_PROVIDER_ID:
+                // ... logic to extract GitHub data
                 break;
-            case '35a78b54-fe75-474e-89a6-5a815121b2': // Binance
-                newData = { binance: { kycLevel: proof.claimData.context.extractedParameters.kycLevel }};
-                break;
+
             default:
                 return res.status(400).send('Unsupported provider');
         }
@@ -53,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const writeMsg = { write: { collection: "personas", document_id: userAddress, data: JSON.stringify(updatedPersona) } };
 
-        // 4. WRITE the updated data to the blockchain
+        // 4. WRITE the updated data back to the blockchain
         const wallet = await DirectSecp256k1HdWallet.fromMnemonic(ADMIN_MNEMONIC, { prefix: "xion" });
         const signingClient = await SigningCosmWasmClient.connectWithSigner(XION_RPC_ENDPOINT, wallet);
         const [firstAccount] = await wallet.getAccounts();
