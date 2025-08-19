@@ -1,0 +1,22 @@
+{
+  "name": "persona-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@cosmjs/cosmwasm-stargate": "^0.36.0",
+    "@cosmjs/proto-signing": "^0.36.0",
+    "@reclaimprotocol/js-sdk": "^4.3.4",
+    "@types/node": "^24.3.0",
+    "@vercel/node": "^5.3.13",
+    "dotenv": "^17.2.1",
+    "typescript": "^5.9.2"
+  }
+}
