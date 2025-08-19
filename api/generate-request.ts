@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       userAddress as string,
       `Proof of Persona Verification`
     );
-    const callbackUrl = `https://${req.headers.host}/api/receive-proof`;
+    const callbackUrl = `https://proof-of-persona-backend.vercel.app/api/receive-proof`;
     reclaimRequest.setAppCallbackUrl(callbackUrl);
 
     // CORRECT WAY TO GET THE URL: Call .getRequestUrl() on the instance.
